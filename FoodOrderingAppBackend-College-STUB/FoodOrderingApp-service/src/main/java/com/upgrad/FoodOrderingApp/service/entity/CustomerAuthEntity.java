@@ -19,7 +19,8 @@ public class CustomerAuthEntity {
     @Size(max = 200)
     private String uuid;
     @NotNull
-    private CustomerEntity customer_id;
+    private static CustomerEntity customer_id;
+
     @NotNull
     @Size(max = 500)
     private String access_token;
@@ -46,7 +47,7 @@ public class CustomerAuthEntity {
         this.uuid = uuid;
     }
 
-    public CustomerEntity getCustomer() {
+    public static CustomerEntity getCustomer() {
         return customer_id;
     }
 

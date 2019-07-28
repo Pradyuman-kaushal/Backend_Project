@@ -1,27 +1,156 @@
 package com.upgrad.FoodOrderingApp.service.businness;
 
+import com.upgrad.FoodOrderingApp.service.dao.customerAuthTokenDao;
 import com.upgrad.FoodOrderingApp.service.dao.customerDao;
 import com.upgrad.FoodOrderingApp.service.entity.CustomerAuthEntity;
 import com.upgrad.FoodOrderingApp.service.entity.CustomerEntity;
+import com.upgrad.FoodOrderingApp.service.exception.AuthenticationFailedException;
+import com.upgrad.FoodOrderingApp.service.exception.AuthorizationFailedException;
+import com.upgrad.FoodOrderingApp.service.exception.SignUpRestrictedException;
+import com.upgrad.FoodOrderingApp.service.exception.UpdateCustomerException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.ZonedDateTime;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.regex.Pattern;
+
 @Service
 public class CustomerService {
     @Autowired
-    private customerDao userDao;
+    private static customerDao userDao;
     @Autowired
-    private PasswordCryptographyProvider passwordCryptographyProvider;
+    private static PasswordCryptographyProvider pcp;
+
     @Transactional(propagation = Propagation.REQUIRED)
-    public CustomerEntity saveCustomer(CustomerEntity userEntity){
-        String[] encrypted=passwordCryptographyProvider.encrypt(userEntity.getPassword());
+    public CustomerEntity saveCustomer(CustomerEntity userEntity)throws SignUpRestrictedException{
+        if(!userDao.checkContact(userEntity.getContact_number()))
+            throw new SignUpRestrictedException("SGR-001","This contact number is already registered! Try other contact number.");
+        if(!colFilled(userEntity))
+            throw new SignUpRestrictedException("SGR-005","Except last name all fields should be filled");
+        if(!isEmailValid(userEntity.getEmail()))
+            throw new SignUpRestrictedException("SGR-002","Invalid email-id format!");
+        if(!isMobileCorrect(userEntity.getContact_number()))
+        throw new SignUpRestrictedException("SGR-003","Invalid contact number!");
+        if(!passwordValidation(userEntity.getPassword()))
+            throw new SignUpRestrictedException("SGR-004","Weak password!");
+        String[] encrypted = pcp.encrypt(userEntity.getPassword());
         userEntity.setPassword(encrypted[1]);
         userEntity.setSalt(encrypted[0]);
+
         return userDao.createUser(userEntity);
     }
-    public CustomerAuthEntity authencate(String no,String pass){
-
+    public static boolean colFilled(CustomerEntity c){
+        if(c.getUuid().length()==0||c.getPassword().length()==0||c.getFirstname().length()==0||c.getEmail().length()==0||c.getContact_number().length()==0)
+            return false;
+        else
+            return true;
     }
+    public static boolean passwordValidation(String pass){
+        if(pass.matches(".*[0-9]{1,}.*") && pass.matches(".*[#@$%&*!^]{1,}.*") &&pass.matches(".*[A-Z]{1,}.*")&& pass.length()>=8 )
+            return true;
+        else
+            return false;
+    }
+    public static boolean isMobileCorrect(String mob){
+        Pattern p = Pattern.compile("[0-9]{10}");
+        if(mob.length()!=10)
+            return false;
+        return p.matcher(mob).matches();
+    }
+    public static boolean isEmailValid(String email){
+
+            String emailRegex = "^[a-zA-Z0-9_+&*-]+(?:\\."+
+                    "[a-zA-Z0-9_+&*-]+)*@" +
+                    "(?:[a-zA-Z0-9-]+\\.)+[a-z" +
+                    "A-Z]{2,7}$";
+
+            Pattern pat = Pattern.compile(emailRegex);
+            if (email == null)
+                return false;
+            return pat.matcher(email).matches();
+        }
+
+    public static CustomerAuthEntity authenticate(String username, String password) throws AuthenticationFailedException {
+        CustomerEntity user = customerDao.getUserByContact(username);
+        if (user == null) {
+            throw new AuthenticationFailedException("AUTH-001", "This contact number has not been registered!");
+        } else {
+            //1. Authenticate the user
+            // - Encrypt the password(recieved from the user with the salt)
+            String encryptedPassword = pcp.encrypt(password, user.getSalt());
+            if (user.getPassword().equals(encryptedPassword)) {
+                // User has been authenticated
+                // Create a JWT token for the user
+                JwtTokenProvider jwtTokenProvider = new JwtTokenProvider(encryptedPassword);
+                // Store that token in the database using UserAuthTokenEntity
+                CustomerAuthEntity userAuthTokenEntity = new CustomerAuthEntity();
+                userAuthTokenEntity.setCustomer(user);
+                ZonedDateTime now = ZonedDateTime.now();
+                ZonedDateTime expiry = now.plusHours(8);
+                // Set up a few things
+                userAuthTokenEntity.setLogin_at(now);
+                userAuthTokenEntity.setExpires_at(expiry);
+                String accessToken = jwtTokenProvider.generateToken(user.getUuid(), now, expiry);
+                // Persist the userAuthToken generated, in the database
+                userAuthTokenEntity.setAccessToken(accessToken);
+                customerAuthTokenDao.create(userAuthTokenEntity);
+                customerDao.updateCustomer(user);
+                //return UserAuthTokenEntity so generated
+                return userAuthTokenEntity;
+
+            } else {
+                throw new AuthenticationFailedException("AUTH-002", "Invalid Credentials");
+
+            }
+        }
+    }
+    public static CustomerAuthEntity logout(String token) throws AuthorizationFailedException {
+        CustomerAuthEntity user = customerAuthTokenDao.getAuthTokenByAccessToken(token);
+        if (user == null) {
+            throw new AuthorizationFailedException("AUTH-001", "Customer is not Logged in.");
+        } else {
+            //1. Authenticate the user
+            // - Encrypt the password(recieved from the user with the salt)
+            //String encryptedPassword = pcp.encrypt(password, user.getSalt());
+            ZonedDateTime now = ZonedDateTime.now();
+            long difference = user.getExpires_at().compareTo(now);
+            if(user.getLogout_at()!=null){
+                throw new AuthorizationFailedException("AUTH-002", "Customer is logged out. Log in again to access this endpoint.");
+            }
+            else if(difference < 0) {
+                 throw new AuthorizationFailedException("AUTH-003", "Your session is expired. Log in again to access this endpoint.");
+            }
+            else {
+                user.setLogout_at(now);
+                customerAuthTokenDao.updatedCustomer(user);
+
+            }
+        }
+
+        return user;
+    }
+    public static CustomerEntity getCustomer(String token)throws AuthorizationFailedException{
+        CustomerAuthEntity c=customerAuthTokenDao.getAuthTokenByAccessToken(token);
+        if(c==null)
+            throw new AuthorizationFailedException("ATHR-001","Customer is not Logged in.");
+        c=logout(c.getAccessToken());
+        return c.getCustomer();
+    }
+    public static CustomerEntity updateCustomerPassword(String o,String n,CustomerEntity c)throws UpdateCustomerException {
+        if(o.length()==0||n.length()==0)
+            throw new UpdateCustomerException("UCR-003","No field should be empty");
+        if(!passwordValidation(n))
+            throw new UpdateCustomerException("UCR-001","Weak password!");
+        if(!c.getPassword().equals(o))
+            throw new UpdateCustomerException("UCR-004","Incorrect old password!");
+        c.setPassword(n);
+        userDao.updateCustomer(c);
+
+        return c;
+    }
+
 }

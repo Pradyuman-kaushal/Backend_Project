@@ -2,15 +2,20 @@ package com.upgrad.FoodOrderingApp.service.entity;
 
 import org.hibernate.validator.constraints.UniqueElements;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
+import javax.persistence.*;
 import javax.validation.constraints.Email;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
+
 @Entity
+@Table(name="customer")
+@NamedQueries(
+        {
+                @NamedQuery(name = "customerByUuid", query = "select u from CustomerEntity u where u.uuid = :uuid"),
+                @NamedQuery(name = "userByContact", query = "select u from CustomerEntity u where u.contact_number =:contact_number")
+        }
+)
 public class CustomerEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -35,6 +40,7 @@ public class CustomerEntity {
     @NotNull
     @Size(max=255)
     private String salt;
+    private CustomerAuthEntity c;
 
     public int getId() {
         return id;
@@ -99,4 +105,5 @@ public class CustomerEntity {
     public void setSalt(String salt) {
         this.salt = salt;
     }
+
 }
