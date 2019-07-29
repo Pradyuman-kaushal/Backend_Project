@@ -67,9 +67,9 @@ public class CustomerController {
         return new ResponseEntity<LogoutResponse>(lr,HttpStatus.OK);
     }
     @RequestMapping(value="/customer/password",method=RequestMethod.PUT)
-    public ResponseEntity<UpdatePasswordResponse>updateCustomerPassword(@RequestHeader("authorization")final String oldpwd,final String newpwd,final CustomerEntity c)throws UpdateCustomerException {
-
-        CustomerEntity p=sup.updateCustomerPassword(oldpwd,newpwd,c);
+    public ResponseEntity<UpdatePasswordResponse>updateCustomerPassword(UpdatePasswordRequest q,@RequestHeader("authorization")final String authentication)throws Exception {
+        CustomerEntity c=sup.getCustomer(authentication);
+        CustomerEntity p=sup.updateCustomerPassword(q.getOldPassword(),q.getNewPassword(),c);
         UpdatePasswordResponse lr=new UpdatePasswordResponse().id(p.getUuid()).status("CUSTOMER PASSWORD UPDATED SUCCESSFULLY");
         return new ResponseEntity<UpdatePasswordResponse>(lr,HttpStatus.OK);
     }

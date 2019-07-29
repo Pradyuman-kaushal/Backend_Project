@@ -1,12 +1,10 @@
 package com.upgrad.FoodOrderingApp.service.entity;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
+import javax.persistence.*;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
 @Entity
+@Table(name="address")
 public class AddressEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -27,7 +25,7 @@ public class AddressEntity {
     @Size(max = 30)
     private String pincode;
     @NotNull
-    private Integer state_id;
+    private StateEntity state_id;
 
     public Integer getId() {
         return id;
@@ -45,11 +43,11 @@ public class AddressEntity {
         this.uuid = uuid;
     }
 
-    public String getFlat_build_number() {
+    public String getFlatBuilNo() {
         return flat_build_number;
     }
 
-    public void setFlat_build_number(String flat_build_number) {
+    public void setFlatBuilNo(String flat_build_number) {
         this.flat_build_number = flat_build_number;
     }
 
@@ -77,11 +75,11 @@ public class AddressEntity {
         this.pincode = pincode;
     }
 
-    public Integer getState_id() {
+    public StateEntity getState() {
         return state_id;
     }
 
-    public void setState_id(Integer state_id) {
+    public void setState(StateEntity state_id) {
         this.state_id = state_id;
     }
 }
