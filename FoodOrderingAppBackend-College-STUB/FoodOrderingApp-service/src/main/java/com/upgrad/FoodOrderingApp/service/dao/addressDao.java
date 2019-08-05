@@ -32,7 +32,7 @@ public class addressDao {
         public static List<AddressEntity> getAllAddress(CustomerEntity c){
 
             EntityManager em=emf.createEntityManager();
-            TypedQuery<AddressEntity> query=em.createQuery("Select p from AddressEntity p where p.uuid=c.getUuid()",AddressEntity.class);
+            TypedQuery<AddressEntity> query=em.createQuery("Select p from AddressEntity p where p.uuid Like :uuid",AddressEntity.class).setParameter("uuid",c.getUuid());
             List<AddressEntity> resultList=query.getResultList();
             return resultList;
         }
