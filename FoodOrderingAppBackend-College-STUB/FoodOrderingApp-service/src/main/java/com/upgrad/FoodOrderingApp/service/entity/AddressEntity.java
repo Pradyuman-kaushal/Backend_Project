@@ -1,4 +1,7 @@
 package com.upgrad.FoodOrderingApp.service.entity;
+import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
+
 import javax.persistence.*;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
@@ -14,7 +17,7 @@ public class AddressEntity {
     private String uuid;
     @NotNull
     @Size(max = 255)
-    private String flat_build_number;
+    private String flat_buil_number;
     @NotNull
     @Size(max = 255)
     private String locality;
@@ -25,8 +28,26 @@ public class AddressEntity {
     @Size(max = 30)
     private String pincode;
     @NotNull
+    @ManyToOne
+    @JoinColumn(name="state_id")
     private StateEntity state_id;
-
+    public AddressEntity(){
+        this.id=null;
+        this.uuid=null;
+        this.flat_buil_number=null;
+        this.locality=null;
+        this.city=null;
+        this.pincode=null;
+        this.state_id=null;
+    }
+    public AddressEntity(String addressId, String f, String locality,String city,String pincode,StateEntity stateEntity){
+        this.uuid=addressId;
+        this.locality=locality;
+        this.city=city;
+        this.state_id=stateEntity;
+        this.flat_buil_number=f;
+        this.pincode=pincode;
+    }
     public Integer getId() {
         return id;
     }
@@ -44,11 +65,11 @@ public class AddressEntity {
     }
 
     public String getFlatBuilNo() {
-        return flat_build_number;
+        return flat_buil_number;
     }
 
     public void setFlatBuilNo(String flat_build_number) {
-        this.flat_build_number = flat_build_number;
+        this.flat_buil_number = flat_build_number;
     }
 
     public String getLocality() {
@@ -82,5 +103,10 @@ public class AddressEntity {
     public void setState(StateEntity state_id) {
         this.state_id = state_id;
     }
+    @Override
+    public String toString() {
+        return ToStringBuilder.reflectionToString(this, ToStringStyle.MULTI_LINE_STYLE);
+    }
+
 }
 

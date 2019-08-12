@@ -1,33 +1,45 @@
 package com.upgrad.FoodOrderingApp.service.dao;
 
-import com.upgrad.FoodOrderingApp.service.entity.CustomerAuthEntity;
 import com.upgrad.FoodOrderingApp.service.entity.CustomerEntity;
 import org.springframework.stereotype.Repository;
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.NoResultException;
-import javax.persistence.PersistenceContext;
+
+import javax.persistence.*;
+import javax.transaction.Transactional;
+import java.io.Serializable;
 
 @Repository
-public class customerDao {
+public class customerDao implements Serializable {
     @PersistenceContext
-    private static EntityManager entityManager;
-    private static EntityManagerFactory emf;
+    private EntityManager entityManager;
+    @PersistenceUnit
+    private EntityManagerFactory emf;
+    @Transactional
     public CustomerEntity createUser(CustomerEntity userEntity) {
-        entityManager.persist(userEntity);
+        EntityTransaction tx= entityManager.getTransaction();
+        try{
+            tx.begin();
+            entityManager.persist(userEntity);
+            tx.commit();
+
+        }catch (Exception e){
+            tx.rollback();
+            System.out.println(e);
+        }
         return userEntity;
     }
-    public static boolean checkContact(String contact_number){
-        CustomerEntity s=null;
-        entityManager=emf.createEntityManager();
-        s=entityManager.find(CustomerEntity.class,contact_number);
-        entityManager.close();
+    public boolean checkContact(String contact_number){
+        EntityManager em=emf.createEntityManager();
+        CustomerEntity s=em.find(CustomerEntity.class,contact_number);
+        em.close();
+        //System.out.println(s);
         if(s==null)
-        return true;
-        else
             return false;
+        else
+            return true;
+
+
     }
-    public static CustomerEntity getUserByContact(String username) {
+    public CustomerEntity getUserByContact(String username) {
         try {
             CustomerEntity userEntity = entityManager.createNamedQuery("userByContact", CustomerEntity.class)
                     .setParameter("contact_number", username).getSingleResult();
@@ -37,7 +49,7 @@ public class customerDao {
         }
     }
 
-    public static void updateCustomer(CustomerEntity updatedUser) {
+    public void updateCustomer(CustomerEntity updatedUser) {
         entityManager.merge(updatedUser);
     }
 
@@ -49,6 +61,13 @@ public class customerDao {
         }catch (NoResultException e){
             return null;
         }
+    }
+    public CustomerEntity getCustomerByUUid(String id){
+        EntityManager em=emf.createEntityManager();
+        TypedQuery<CustomerEntity> query = em.createQuery("SELECT p FROM CustomerEntity p WHERE p.uuid =:uid", CustomerEntity.class).setParameter("uid",id);
+        CustomerEntity s=query.getSingleResult();
+        em.close();
+        return s;
     }
 }
 

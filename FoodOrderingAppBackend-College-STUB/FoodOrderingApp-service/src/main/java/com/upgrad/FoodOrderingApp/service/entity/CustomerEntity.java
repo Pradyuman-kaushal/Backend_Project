@@ -1,5 +1,7 @@
 package com.upgrad.FoodOrderingApp.service.entity;
 
+import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
 import org.hibernate.validator.constraints.UniqueElements;
 
 import javax.persistence.*;
@@ -7,14 +9,17 @@ import javax.validation.constraints.Email;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
+import java.util.UUID;
+
+import static org.hibernate.id.PersistentIdentifierGenerator.SCHEMA;
+
 
 @Entity
-@Table(name="customer")
+@Table(name="customer",schema = SCHEMA)
 
 public class CustomerEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private Integer id=2;
     @NotNull
     @Size(max=200)
     private String uuid;
@@ -35,14 +40,9 @@ public class CustomerEntity {
     @NotNull
     @Size(max=255)
     private String salt;
-    private CustomerAuthEntity c;
 
     public int getId() {
         return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
     }
 
     public String getUuid() {
@@ -100,5 +100,12 @@ public class CustomerEntity {
     public void setSalt(String salt) {
         this.salt = salt;
     }
+
+    @Override
+    public String toString() {
+        return ToStringBuilder.reflectionToString(this, ToStringStyle.MULTI_LINE_STYLE);
+    }
+
+
 
 }

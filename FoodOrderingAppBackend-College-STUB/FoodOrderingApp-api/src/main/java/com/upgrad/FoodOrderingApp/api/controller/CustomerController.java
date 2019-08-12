@@ -12,10 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Base64;
 import java.util.Map;
@@ -27,7 +24,7 @@ public class CustomerController {
     @Autowired
     private CustomerService sup;
     @RequestMapping(value="/customer/signup",method= RequestMethod.POST)
-    public ResponseEntity<SignupCustomerResponse> signup(SignupCustomerRequest s)throws SignUpRestrictedException {
+    public ResponseEntity<SignupCustomerResponse> signup(@RequestBody(required = false) final SignupCustomerRequest s)throws SignUpRestrictedException {
         CustomerEntity c=new CustomerEntity();
         c.setUuid(UUID.randomUUID().toString());
         c.setFirstname(s.getFirstName());
@@ -36,7 +33,7 @@ public class CustomerController {
         c.setEmail(s.getEmailAddress());
         c.setPassword(s.getPassword());
         c.setSalt("1234@abc");
-        final CustomerEntity createdUserEntity=sup.saveCustomer(c);
+        CustomerEntity createdUserEntity=sup.saveCustomer(c);
         SignupCustomerResponse userResponse=new SignupCustomerResponse().id(createdUserEntity.getUuid()).status("CUSTOMER SUCCESSFULLY REGISTERED");
         return new ResponseEntity<SignupCustomerResponse>(userResponse, HttpStatus.CREATED);
     }
@@ -47,10 +44,10 @@ public class CustomerController {
         if(decodedText.indexOf(":")==-1)
             throw new AuthenticationFailedException("ATH-003","Incorrect format of decoded customer name and password");
         String[] decodedArray=decodedText.split(":");
-        CustomerAuthEntity userAuthTokenEntity=CustomerService.authenticate(
+        CustomerAuthEntity userAuthTokenEntity=sup.authenticate(
                 decodedArray[0],decodedArray[1]
         );
-        CustomerEntity user=CustomerAuthEntity.getCustomer();
+        CustomerEntity user=sup.getCustomerByUUid(userAuthTokenEntity.getUuid());
         LoginResponse aur=new LoginResponse().id(user.getUuid())
                 .emailAddress(user.getEmail()).firstName(user.getFirstname())
                 .lastName(user.getLastname()).contactNumber(user.getContact_number()).message("LOGGED IN SUCCESSFULLY");
@@ -62,7 +59,7 @@ public class CustomerController {
     @RequestMapping(value="/customer/logout",method=RequestMethod.POST)
     public ResponseEntity<LogoutResponse>logout(@RequestHeader("authorization")final String authentication)throws AuthorizationFailedException {
         String decodedText=authentication;
-        CustomerAuthEntity c=CustomerService.logout(decodedText);
+        CustomerAuthEntity c=sup.logout(decodedText);
         LogoutResponse lr=new LogoutResponse().id(c.getUuid()).message("LOGGED OUT SUCCESSFULLY");
         return new ResponseEntity<LogoutResponse>(lr,HttpStatus.OK);
     }
@@ -73,8 +70,4 @@ public class CustomerController {
         UpdatePasswordResponse lr=new UpdatePasswordResponse().id(p.getUuid()).status("CUSTOMER PASSWORD UPDATED SUCCESSFULLY");
         return new ResponseEntity<UpdatePasswordResponse>(lr,HttpStatus.OK);
     }
-
-
-
-
 }

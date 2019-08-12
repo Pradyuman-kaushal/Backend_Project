@@ -1,5 +1,8 @@
 package com.upgrad.FoodOrderingApp.service.entity;
 
+import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
+
 import javax.persistence.*;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
@@ -17,6 +20,7 @@ public class CategoryEntity {
     @NotNull
     @Size(max=255)
     private String category_name;
+    @Transient
     private List<ItemEntity> list;
 
     public Integer getId() {
@@ -47,6 +51,10 @@ public class CategoryEntity {
     }
     public List<ItemEntity> getItems(){
         return this.list;
+    }
+    @Override
+    public String toString() {
+        return ToStringBuilder.reflectionToString(this, ToStringStyle.MULTI_LINE_STYLE);
     }
 
 }

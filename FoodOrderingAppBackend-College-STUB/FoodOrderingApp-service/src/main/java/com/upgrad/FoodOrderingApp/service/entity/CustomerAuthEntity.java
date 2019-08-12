@@ -1,5 +1,8 @@
 package com.upgrad.FoodOrderingApp.service.entity;
 
+import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
+
 import javax.persistence.*;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.validation.constraints.NotNull;
@@ -17,7 +20,8 @@ public class CustomerAuthEntity {
     @Size(max = 200)
     private String uuid;
     @NotNull
-    private static CustomerEntity customer_id;
+    @ManyToOne
+    private CustomerEntity customer_id;
 
     @NotNull
     @Size(max = 500)
@@ -45,7 +49,7 @@ public class CustomerAuthEntity {
         this.uuid = uuid;
     }
 
-    public static CustomerEntity getCustomer() {
+    public CustomerEntity getCustomer() {
         return customer_id;
     }
 
@@ -84,4 +88,9 @@ public class CustomerAuthEntity {
     public void setExpires_at(ZonedDateTime expires_at) {
         this.expires_at = expires_at;
     }
+    @Override
+    public String toString() {
+        return ToStringBuilder.reflectionToString(this, ToStringStyle.MULTI_LINE_STYLE);
+    }
+
 }

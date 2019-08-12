@@ -1,6 +1,8 @@
 package com.upgrad.FoodOrderingApp.service.entity;
 
 import com.upgrad.FoodOrderingApp.service.common.ItemType;
+import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotNull;
@@ -56,11 +58,14 @@ public class ItemEntity {
         this.price = price;
     }
 
-    public ItemType getType() {
-        return type;
-    }
+    public ItemType getType() {return type;}
 
     public void setType(ItemType type) {
         this.type = type;
     }
+    @Override
+    public String toString() {
+        return ToStringBuilder.reflectionToString(this, ToStringStyle.MULTI_LINE_STYLE);
+    }
+
 }

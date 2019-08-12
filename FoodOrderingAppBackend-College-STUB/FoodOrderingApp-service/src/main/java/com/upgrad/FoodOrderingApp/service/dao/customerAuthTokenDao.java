@@ -6,19 +6,20 @@ import org.springframework.stereotype.Repository;
 
 import javax.persistence.EntityManager;
 import javax.persistence.NoResultException;
-import javax.persistence.PersistenceContext;
+import javax.persistence.*;
+import java.io.Serializable;
 
 @Repository
-public class customerAuthTokenDao {
+public class customerAuthTokenDao implements Serializable {
     @PersistenceContext
-    private static EntityManager entityManager;
+    private EntityManager entityManager;
 
-    public static CustomerAuthEntity create(final CustomerAuthEntity newToken) {
+    public CustomerAuthEntity create(final CustomerAuthEntity newToken) {
         entityManager.persist(newToken);
         return newToken;
     }
 
-    public static CustomerAuthEntity getAuthTokenByAccessToken(String authToken) {
+    public CustomerAuthEntity getAuthTokenByAccessToken(String authToken) {
         try {
             return entityManager.createNamedQuery("userAuthTokenByAccessToken", CustomerAuthEntity.class).setParameter("accessToken", authToken).getSingleResult();
         } catch (NoResultException e) {
@@ -27,7 +28,7 @@ public class customerAuthTokenDao {
 
         }
     }
-    public static void updatedCustomer(CustomerAuthEntity updatedUser) {
+    public void updatedCustomer(CustomerAuthEntity updatedUser) {
         entityManager.merge(updatedUser);
     }
 }

@@ -21,13 +21,13 @@ import java.util.regex.Pattern;
 @Service
 public class CustomerService {
     @Autowired
-    private static customerDao userDao;
+    private customerDao userDao;
+    private customerAuthTokenDao catd;
     @Autowired
-    private static PasswordCryptographyProvider pcp;
+    private PasswordCryptographyProvider pcp;
 
-    @Transactional(propagation = Propagation.REQUIRED)
     public CustomerEntity saveCustomer(CustomerEntity userEntity)throws SignUpRestrictedException{
-        if(!userDao.checkContact(userEntity.getContact_number()))
+        if(userDao.checkContact(userEntity.getContact_number()))
             throw new SignUpRestrictedException("SGR-001","This contact number is already registered! Try other contact number.");
         if(!colFilled(userEntity))
             throw new SignUpRestrictedException("SGR-005","Except last name all fields should be filled");
@@ -43,25 +43,25 @@ public class CustomerService {
 
         return userDao.createUser(userEntity);
     }
-    public static boolean colFilled(CustomerEntity c){
+    public boolean colFilled(CustomerEntity c){
         if(c.getUuid().length()==0||c.getPassword().length()==0||c.getFirstname().length()==0||c.getEmail().length()==0||c.getContact_number().length()==0)
             return false;
         else
             return true;
     }
-    public static boolean passwordValidation(String pass){
+    public boolean passwordValidation(String pass){
         if(pass.matches(".*[0-9]{1,}.*") && pass.matches(".*[#@$%&*!^]{1,}.*") &&pass.matches(".*[A-Z]{1,}.*")&& pass.length()>=8 )
             return true;
         else
             return false;
     }
-    public static boolean isMobileCorrect(String mob){
+    public boolean isMobileCorrect(String mob){
         Pattern p = Pattern.compile("[0-9]{10}");
         if(mob.length()!=10)
             return false;
         return p.matcher(mob).matches();
     }
-    public static boolean isEmailValid(String email){
+    public boolean isEmailValid(String email){
 
             String emailRegex = "^[a-zA-Z0-9_+&*-]+(?:\\."+
                     "[a-zA-Z0-9_+&*-]+)*@" +
@@ -74,8 +74,8 @@ public class CustomerService {
             return pat.matcher(email).matches();
         }
 
-    public static CustomerAuthEntity authenticate(String username, String password) throws AuthenticationFailedException {
-        CustomerEntity user = customerDao.getUserByContact(username);
+    public CustomerAuthEntity authenticate(String username, String password) throws AuthenticationFailedException {
+        CustomerEntity user = userDao.getUserByContact(username);
         if (user == null) {
             throw new AuthenticationFailedException("AUTH-001", "This contact number has not been registered!");
         } else {
@@ -97,8 +97,8 @@ public class CustomerService {
                 String accessToken = jwtTokenProvider.generateToken(user.getUuid(), now, expiry);
                 // Persist the userAuthToken generated, in the database
                 userAuthTokenEntity.setAccessToken(accessToken);
-                customerAuthTokenDao.create(userAuthTokenEntity);
-                customerDao.updateCustomer(user);
+                catd.create(userAuthTokenEntity);
+                userDao.updateCustomer(user);
                 //return UserAuthTokenEntity so generated
                 return userAuthTokenEntity;
 
@@ -108,8 +108,8 @@ public class CustomerService {
             }
         }
     }
-    public static CustomerAuthEntity logout(String token) throws AuthorizationFailedException {
-        CustomerAuthEntity user = customerAuthTokenDao.getAuthTokenByAccessToken(token);
+    public CustomerAuthEntity logout(String token) throws AuthorizationFailedException {
+        CustomerAuthEntity user = catd.getAuthTokenByAccessToken(token);
         if (user == null) {
             throw new AuthorizationFailedException("AUTH-001", "Customer is not Logged in.");
         } else {
@@ -126,21 +126,21 @@ public class CustomerService {
             }
             else {
                 user.setLogout_at(now);
-                customerAuthTokenDao.updatedCustomer(user);
+                catd.updatedCustomer(user);
 
             }
         }
 
         return user;
     }
-    public static CustomerEntity getCustomer(String token)throws AuthorizationFailedException{
-        CustomerAuthEntity c=customerAuthTokenDao.getAuthTokenByAccessToken(token);
+    public CustomerEntity getCustomer(String token)throws AuthorizationFailedException{
+        CustomerAuthEntity c=catd.getAuthTokenByAccessToken(token);
         if(c==null)
             throw new AuthorizationFailedException("ATHR-001","Customer is not Logged in.");
         c=logout(c.getAccessToken());
         return c.getCustomer();
     }
-    public static CustomerEntity updateCustomerPassword(String o,String n,CustomerEntity c)throws UpdateCustomerException {
+    public CustomerEntity updateCustomerPassword(String o,String n,CustomerEntity c)throws UpdateCustomerException {
         if(o.length()==0||n.length()==0)
             throw new UpdateCustomerException("UCR-003","No field should be empty");
         if(!passwordValidation(n))
@@ -151,6 +151,9 @@ public class CustomerService {
         userDao.updateCustomer(c);
 
         return c;
+    }
+    public CustomerEntity getCustomerByUUid(String id){
+        return userDao.getCustomerByUUid(id);
     }
 
 }
