@@ -42,19 +42,30 @@ public class customerDao implements Serializable {
 
     }
     public CustomerEntity getUserByContact(String username) {
-        try {
+        //Integer cn=Integer.parseInt(username);
             EntityManager em=emf.createEntityManager();
-            CustomerEntity userEntity = em.createNamedQuery("userByContact", CustomerEntity.class)
-                    .setParameter("contact_number", username).getSingleResult();
+
+            TypedQuery<CustomerEntity> query= em.createQuery("From CustomerEntity p where p.firstname=:username",CustomerEntity.class).setParameter("username",username);
+        CustomerEntity userEntity=query.getSingleResult();
+            em.close();
+
             return userEntity;
-        } catch (NoResultException e) {
-            return null;
-        }
+
     }
 
     public void updateCustomer(CustomerEntity updatedUser) {
         EntityManager em=emf.createEntityManager();
-        em.merge(updatedUser);
+
+        EntityTransaction tx= em.getTransaction();
+        try{
+            tx.begin();
+            em.merge(updatedUser);
+            tx.commit();
+
+        }catch (Exception e){
+            tx.rollback();
+            System.out.println(e);
+        }
     }
 
     public CustomerEntity getCustomer(final String access_token) {
